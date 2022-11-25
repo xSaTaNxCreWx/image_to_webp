@@ -28,6 +28,29 @@ $t = $to_webp->convert();
 ```
 
 ### Дополнительные настройки класс
+#### Изменяем библиотеку для обработки
+Поддерживается работа **GD** и **ImageMagick**
+
+По умолчанию - **GD**
+Для изменения на **ImageMagick** нужно передать в класс название библиотеки `ImageMagick` или `im`
+```php
+include_once __DIR__ . '/Image_to_webp.php';
+
+// Переводим на библиотеку ImageMagick
+$to_webp = new Image_to_webp('im');
+```
+
+#### Обработка одного изображения
+Если нужно обработать одну картинку по её url, то его можно передать напрямую в метод `convert($url)`
+```php
+include_once __DIR__ . '/Image_to_webp.php';
+
+$to_webp = new Image_to_webp();
+
+// Конвертирование изображений
+$t = $to_webp->convert('https://www.site.ru/image.jpg');
+```
+
 #### Изменение обрабатываемых изображений
 ```php
 include_once __DIR__ . '/Image_to_webp.php';
@@ -44,15 +67,6 @@ include_once __DIR__ . '/Image_to_webp.php';
 $to_webp = new Image_to_webp();
 // Будет установлена папка для изображений
 $to_webp->set_base_dir('/path/to/dir');
-```
-
-#### Установка папки для сохранения WebP
-```php
-include_once __DIR__ . '/Image_to_webp.php';
-
-$to_webp = new Image_to_webp();
-// Будет установлена папка для сохранения WebP
-$to_webp->set_webp_dir('/path/to/dir');
 ```
 
 #### Установка папки для сохранения WebP

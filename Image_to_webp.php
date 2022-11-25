@@ -5,6 +5,13 @@
  */
 class Image_to_webp {
 	/**
+	 * Тип используемой библиотеки
+	 *
+	 * @var string
+	 */
+	private $type;
+
+	/**
 	 * Основной url сайта
 	 *
 	 * @var string
@@ -46,15 +53,19 @@ class Image_to_webp {
 	 */
 	private $image_urls = null;
 
-	public function __construct( $test = false ) {
+	public function __construct( $type = 'gd', $test = false ) {
+
+		$this->type = $type;
+
 		if ( $test ) {
 			$test_info = array();
 
 			if ( phpversion() >= '5.4.0' ) {
+				$gd_info = gd_info();
 				$test_info = array(
 					'php_version'  => phpversion(),
-					'gd_version'   => gd_info()['GD Version'],
-					'webp_support' => ( key_exists( 'WebP Support', gd_info() ) && gd_info()['WebP Support'] === true )
+					'gd_version'   => $gd_info['GD Version'],
+					'webp_support' => ( key_exists( 'WebP Support', $gd_info ) && $gd_info['WebP Support'] === true )
 				);
 
 				if ( ! $test_info['webp_support'] ) {
@@ -92,17 +103,16 @@ class Image_to_webp {
 	/**
 	 * Помощь в дебаге
 	 *
-	 * @param $code
-	 * @param ...$args
+	 * @param mixed $code
 	 *
 	 * @return void
 	 */
-	public function vd( $code = '', ...$args ) {
+	public function vd( $code = '') {
 		echo '<pre style="padding: 15px;border: 1px solid black; background-color: #e8e8e8;font-family: monospace;line-height: 1.4;">';
 		if ( $code === '' ) {
 			$code = $this;
 		}
-		var_dump( $code, ...$args );
+		var_dump( $code );
 		echo '</pre>';
 	}
 
@@ -114,12 +124,12 @@ class Image_to_webp {
 	 * @return void
 	 */
 	public function add_image( $image_url ) {
-		if ( is_array($image_url) ) {
-			$this->image_urls = ( is_null($this->image_urls) ) ? $image_url : array_merge($this->image_urls, $image_url);
+		if ( is_array( $image_url ) ) {
+			$this->image_urls = ( is_null( $this->image_urls ) ) ? $image_url : array_merge( $this->image_urls, $image_url );
 		}
 
-		if ( is_string($image_url) ) {
-			$this->image_urls = ( is_null($this->image_urls) ) ? array($image_url) : array_merge($this->image_urls, array($image_url));
+		if ( is_string( $image_url ) ) {
+			$this->image_urls = ( is_null( $this->image_urls ) ) ? array( $image_url ) : array_merge( $this->image_urls, array( $image_url ) );
 		}
 	}
 
@@ -127,7 +137,7 @@ class Image_to_webp {
 	 * Устанавливаем разрешенные расширения файлов.
 	 * По умолчанию: jpg, jpeg, png
 	 *
-	 * @param $extension - массив с расширениями
+	 * @param array $extension - массив с расширениями
 	 *
 	 * @return void
 	 */
@@ -156,9 +166,9 @@ class Image_to_webp {
 	 * @return void
 	 */
 	public function set_webp_dir( $path ) {
-		$this->webp_dir = $this->checking_slash( $path );
-		$get_name = explode( '/', $path );
-		$this->webp_dir_name = end( $get_name ) ;
+		$this->webp_dir      = $this->checking_slash( $path );
+		$get_name            = explode( '/', $path );
+		$this->webp_dir_name = end( $get_name );
 	}
 
 	/**
@@ -206,8 +216,15 @@ class Image_to_webp {
 	 * Создание WebP из файла
 	 *
 	 * @return array
+	 * @throws ImagickException
 	 */
-	public function convert() {
+	public function convert( $path = null ) {
+		if ( $path !== null ) {
+			$this->image_urls = array(
+				$path
+			);
+		}
+
 		if ( ! empty( $this->image_urls ) && strpos( $_SERVER['HTTP_ACCEPT'], 'image/webp' ) !== false ) {
 			// Перебираем входящие url картинок
 			foreach ( $this->image_urls as $key => $image ) {
@@ -215,7 +232,7 @@ class Image_to_webp {
 				$image_info = pathinfo( $image );
 
 				// Проверяем что файл имеет нужно расширение
-				if ( key_exists( 'extension', $image_info ) && in_array( strtolower($image_info['extension']), $this->extensions ) ) {
+				if ( key_exists( 'extension', $image_info ) && in_array( strtolower( $image_info['extension'] ), $this->extensions ) ) {
 					// Получаем промежуточный путь от основной папки, до папки текущего файла
 					$sub_folders = str_replace( array( $this->base_url, $image_info['basename'] ), '', $image );
 
@@ -245,7 +262,7 @@ class Image_to_webp {
 		}
 
 		// Возвращаем массив
-		return $this->image_urls;
+		return ($path !== null) ? $this->image_urls[0] : $this->image_urls;
 	}
 
 	/**
@@ -256,8 +273,29 @@ class Image_to_webp {
 	 * @param $path_to_webp - путь до WebP файла
 	 *
 	 * @return void
+	 * @throws ImagickException
 	 */
-	public function create_webp( $extension, $image_path, $path_to_webp ) {
+	private function create_webp( $extension, $image_path, $path_to_webp ) {
+		switch ( $this->type ) {
+			case 'ImageMagick':
+			case 'im':
+				$this->create_webp_im( $image_path, $path_to_webp );
+				break;
+			default:
+				$this->create_webp_gd( $extension, $image_path, $path_to_webp );
+		}
+	}
+
+	/**
+	 * Создаём WebP библиотекой GD
+	 *
+	 * @param $extension - расширение исходного файла
+	 * @param $image_path - путь до исходного файла
+	 * @param $path_to_webp - путь до WebP файла
+	 *
+	 * @return void
+	 */
+	private function create_webp_gd( $extension, $image_path, $path_to_webp ) {
 		if ( strtolower( $extension ) === 'png' ) {
 			$im = imagecreatefrompng( $image_path );
 			imagepalettetotruecolor( $im );
@@ -274,4 +312,24 @@ class Image_to_webp {
 			file_put_contents( $path_to_webp, "\0", FILE_APPEND );
 		}
 	}
+
+	/**
+	 * Создаём WebP библиотекой ImageMagick
+	 *
+	 * @param $image_path - путь до исходного файла
+	 * @param $path_to_webp - путь до WebP файла
+	 *
+	 * @return void
+	 * @throws ImagickException
+	 */
+	private function create_webp_im( $image_path, $path_to_webp ) {
+		$im = new Imagick();
+		$im->pingImage($image_path);
+		$im->readImage($image_path);
+		$im->setImageFormat('webp');
+		$im->setOption('webp:method', '6');
+
+		$im->writeImage($path_to_webp);
+	}
+
 }
