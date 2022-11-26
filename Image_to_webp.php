@@ -37,7 +37,7 @@ class Image_to_webp {
 	 *
 	 * @var string
 	 */
-	private $webp_dir_name = 'webp';
+	private $webp_dir_name = '/webp';
 
 	/**
 	 * Разрешенный расширения файлов
