@@ -255,7 +255,8 @@ class Image_to_webp {
 						}
 
 						// Перезаписываем входной массив, для ответа
-						$this->image_urls[ $key ] = str_replace( $this->webp_dir, $this->base_url . ( $this->base_url === '' ? '/' : '' ) . $this->webp_dir_name, $wepb_image_path );
+						$replace = $this->checking_slash($this->base_url . ( $this->base_url === '' ? '/' : '' ) . $this->webp_dir_name);
+						$this->image_urls[ $key ] = str_replace( $this->webp_dir, $replace, $wepb_image_path );
 					}
 				}
 			}
