@@ -225,7 +225,7 @@ class Image_to_webp {
 			);
 		}
 
-		if ( ! empty( $this->image_urls ) && strpos( $_SERVER['HTTP_ACCEPT'], 'image/webp' ) !== false ) {
+		if ( ! empty( $this->image_urls ) && ( strpos( $_SERVER['HTTP_ACCEPT'], 'image/webp' ) !== false || strpos( $_SERVER['HTTP_USER_AGENT'], ' Chrome/' ) !== false ) ) {
 			// Перебираем входящие url картинок
 			foreach ( $this->image_urls as $key => $image ) {
 				// Получаем информацию о файле
